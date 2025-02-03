@@ -22,7 +22,7 @@
 #define PINGPONG_REPEATS 1000
 #endif
 #ifndef PINGPONG_MSG_SIZE
-#define PINGPONG_MSG_SIZE 102400
+#define PINGPONG_MSG_SIZE 819600
 #endif
 
 int main(int argc, char* argv[]) {

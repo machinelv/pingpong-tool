@@ -2,11 +2,11 @@
 
 tasktype=$1
 
-sleep_run=60
-sleep_cool=30
-sleep_interval=40
+sleep_run=50
+sleep_cool=10
+sleep_interval=10
 
-repeat=100
+repeat=30
 for i in $(seq 1 $repeat); do
 
     time_stamp=$(date +%Y%m%d-%H%M%S)

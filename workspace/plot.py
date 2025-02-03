@@ -6,7 +6,7 @@ import os
 
 def plot_histogram(data:pd.DataFrame, x:str, title:str, save_path:str, file_name:str):
     plt.figure(figsize=(12, 6))
-    plt.hist(data[x], bins=20, alpha=0.5, color='blue', edgecolor='black')
+    plt.hist(data[x], bins=35, alpha=0.5, color='blue', edgecolor='black')
     mean_val = data[x].mean()
     std_val = data[x].std()
 
@@ -26,5 +26,6 @@ def plot_histogram(data:pd.DataFrame, x:str, title:str, save_path:str, file_name
     plt.ylabel('Frequency')
     plt.title(title)
     plt.tight_layout()
-    # plt.savefig(os.path.join(save_path, f'{file_name}.png'))
-    # plt.close()
+    
+    plt.savefig(os.path.join(save_path, f'{file_name}-{x.replace('/','per')}.png'))
+    plt.close()

@@ -1,10 +1,10 @@
+__*__/
+figures/
+logs*/
 
+
+
+*.csv
 pingpong
 pingpong1
 pingpong2
-
-logs*/
-
-__*__/
-
-*.csv
