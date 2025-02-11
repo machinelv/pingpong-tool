@@ -3,6 +3,9 @@
 tasktype=$1
 hostfile=$2
 time_stamp=$3
+log_dir=$4
+log_dir=$log_dir-$tasktype
+mkdir -p $log_dir
 
 if [[ $hostfile == "hostfile1" ]];then
     nodelist="pi1,pi3"
@@ -27,8 +30,7 @@ else
     exe="../pingpong2"
 fi
 
-log_dir="./logs-${tasktype}"
-mkdir -p $log_dir
+
 log_file=log-${hostfile}-${time_stamp}.txt
 log_path=$log_dir/$log_file
 
