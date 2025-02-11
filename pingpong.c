@@ -22,7 +22,7 @@
 #define PINGPONG_REPEATS 1000
 #endif
 #ifndef PINGPONG_MSG_SIZE
-#define PINGPONG_MSG_SIZE 819600
+#define PINGPONG_MSG_SIZE 204800
 #endif
 
 int main(int argc, char* argv[]) {
@@ -77,6 +77,17 @@ int main(int argc, char* argv[]) {
 
     if (0 == me) {
       printf("# Beginning benchmarking...\n");
+    }
+
+    // Warmup
+    for (int i = 0; i < 10; ++i) {
+      if (0 == me) {
+        MPI_Send(sendBuffer, msgSize, MPI_CHAR, 1, 0, MPI_COMM_WORLD);
+        MPI_Recv(recvBuffer, msgSize, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &status);
+      } else {
+        MPI_Recv(recvBuffer, msgSize, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
+        MPI_Send(sendBuffer, msgSize, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
+      }
     }
 
     struct timeval start;
