@@ -12,12 +12,21 @@ sleep_interval=5
 repeat=5
 
 for i in $(seq 1 $repeat); do
+    for var in 102400 204800 819200 2048000; do
 
-    time_stamp=$(date +%Y%m%d-%H%M%S)
-
-    for var in 102400 204800 819200; do
+        time_stamp=$(date +%Y%m%d-%H%M%S)
         make clean -C ../
         make pingpong_msg_size=$var -C ../
+        
+        # Warm up
+        mpirun -np 2 --hostfile hostfile1 ../pingpong1 
+        mpirun -np 2 --hostfile hostfile2 ../pingpong2
+
+
+        mpirun -np 2 --hostfile hostfile2 ../pingpong2 &
+        mpirun -np 2 --hostfile hostfile1 ../pingpong1 
+
+        sleep $sleep_run
 
         if [[ $tasktype == "interleaved" ]]; then
             bash ./run.sh interleaved hostfile1 $time_stamp $log_dir &
