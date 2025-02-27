@@ -44,7 +44,7 @@ echo "Node List: ${nodelist}" | tee -a $log_path
 for i in $(seq 1 $repeat); do
     cur_time=$(date +%Y%m%d-%H%M%S)
     echo "Start time: $cur_time" | tee -a $log_path
-    cmd="mpirun -np 2 --hostfile $hostfile $exe"
+    cmd="mpirun -np 8 --hostfile $hostfile $exe"
     echo $cmd 2>&1 | tee -a $log_path
     $cmd 2>&1 | tee -a $log_path
     cur_time=$(date +%Y%m%d-%H%M%S)

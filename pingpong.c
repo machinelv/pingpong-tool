@@ -14,6 +14,7 @@
 // distribution.
 
 #include <mpi.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -57,78 +58,82 @@ int main(int argc, char* argv[]) {
     printf("No MPI is run because there are not 2 or more processors.\n");
     return 1;
   } else if (world > 2) {
-    if (0 == me) {
-      printf("Warning: More than 2 processors are used. Only 2 are needed.\n");
-    }
+    // if (0 == me) {
+    //   printf("Warning: More than 2 processors are used. Only 2 are needed.\n");
+    // }
   }
+
+  assert(world % 2 == 0);
+
+  const int stride = world / 2;
+  const int partner = (me + stride) % world;
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (me < 2) {
-    char* sendBuffer = (char*)malloc(sizeof(char*) * msgSize);
-    char* recvBuffer = (char*)malloc(sizeof(char*) * msgSize);
+  char* sendBuffer = (char*)malloc(sizeof(char*) * msgSize);
+  char* recvBuffer = (char*)malloc(sizeof(char*) * msgSize);
 
-    MPI_Status status;
+  MPI_Status status;
 
-    for (int i = 0; i < msgSize; ++i) {
-      sendBuffer[i] = i;
-      recvBuffer[i] = 0;
+  for (int i = 0; i < msgSize; ++i) {
+    sendBuffer[i] = i;
+    recvBuffer[i] = 0;
+  }
+
+  if (0 == me) {
+    printf("# Beginning benchmarking...\n");
+  }
+
+  // Warmup
+  for (int i = 0; i < 10; ++i) {
+    if (me < stride) {
+      MPI_Send(sendBuffer, msgSize, MPI_CHAR, partner, 0, MPI_COMM_WORLD);
+      MPI_Recv(recvBuffer, msgSize, MPI_CHAR, partner, 1, MPI_COMM_WORLD, &status);
+    } else {
+      MPI_Recv(recvBuffer, msgSize, MPI_CHAR, partner, 0, MPI_COMM_WORLD, &status);
+      MPI_Send(sendBuffer, msgSize, MPI_CHAR, partner, 1, MPI_COMM_WORLD);
     }
+  }
 
-    if (0 == me) {
-      printf("# Beginning benchmarking...\n");
+  struct timeval start;
+  struct timeval end;
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  gettimeofday(&start, NULL);
+
+  for (int i = 0; i < repeats; ++i) {
+    if (me < stride) {
+      MPI_Send(sendBuffer, msgSize, MPI_CHAR, partner, 0, MPI_COMM_WORLD);
+      MPI_Recv(recvBuffer, msgSize, MPI_CHAR, partner, 1, MPI_COMM_WORLD, &status);
+    } else {
+      MPI_Recv(recvBuffer, msgSize, MPI_CHAR, partner, 0, MPI_COMM_WORLD, &status);
+      MPI_Send(sendBuffer, msgSize, MPI_CHAR, partner, 1, MPI_COMM_WORLD);
     }
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  gettimeofday(&end, NULL);
 
-    // Warmup
-    for (int i = 0; i < 10; ++i) {
-      if (0 == me) {
-        MPI_Send(sendBuffer, msgSize, MPI_CHAR, 1, 0, MPI_COMM_WORLD);
-        MPI_Recv(recvBuffer, msgSize, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &status);
-      } else {
-        MPI_Recv(recvBuffer, msgSize, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Send(sendBuffer, msgSize, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
-      }
-    }
+  free(sendBuffer);
+  free(recvBuffer);
 
-    struct timeval start;
-    struct timeval end;
+  if (0 == me) {
+    printf("# Statistics:\n");
 
-    gettimeofday(&start, NULL);
+    const double bytesXchng = ((double)msgSize) * stride * 2.0 * ((double)repeats);
+    const double MbytesXchng = bytesXchng / (1024.0 * 1024.0);
+    const double timeTaken =
+        (((double)end.tv_sec) + 1.0e-6 * ((double)end.tv_usec)) -
+        (((double)start.tv_sec) + 1.0e-6 * ((double)start.tv_usec));
+    const double msgsXchng = ((double)repeats) * 2.0;
+    const double KMsgsXchng = msgsXchng / 1000.0;
 
-    for (int i = 0; i < repeats; ++i) {
-      if (0 == me) {
-        MPI_Send(sendBuffer, msgSize, MPI_CHAR, 1, 0, MPI_COMM_WORLD);
-        MPI_Recv(recvBuffer, msgSize, MPI_CHAR, 1, 1, MPI_COMM_WORLD, &status);
-      } else {
-        MPI_Recv(recvBuffer, msgSize, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &status);
-        MPI_Send(sendBuffer, msgSize, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
-      }
-    }
+    printf("# %9s %11s %17s %14s %16s %14s\n", "MsgSize", "Time", "KMsgs",
+            "MB", "KMsg/S", "MB/S");
+    printf("  %9.0f %11.4f %17.5f %14.4f %16.4f %14.4f\n", (double)msgSize,
+            timeTaken, KMsgsXchng, MbytesXchng, KMsgsXchng / timeTaken,
+            MbytesXchng / timeTaken);
 
-    gettimeofday(&end, NULL);
-
-    free(sendBuffer);
-    free(recvBuffer);
-
-    if (0 == me) {
-      printf("# Statistics:\n");
-
-      const double bytesXchng = ((double)msgSize) * 2.0 * ((double)repeats);
-      const double MbytesXchng = bytesXchng / (1024.0 * 1024.0);
-      const double timeTaken =
-          (((double)end.tv_sec) + 1.0e-6 * ((double)end.tv_usec)) -
-          (((double)start.tv_sec) + 1.0e-6 * ((double)start.tv_usec));
-      const double msgsXchng = ((double)repeats) * 2.0;
-      const double KMsgsXchng = msgsXchng / 1000.0;
-
-      printf("# %9s %11s %17s %14s %16s %14s\n", "MsgSize", "Time", "KMsgs",
-             "MB", "KMsg/S", "MB/S");
-      printf("  %9.0f %11.4f %17.5f %14.4f %16.4f %14.4f\n", (double)msgSize,
-             timeTaken, KMsgsXchng, MbytesXchng, KMsgsXchng / timeTaken,
-             MbytesXchng / timeTaken);
-
-      
-    }
+    
   }
 
   MPI_Barrier(MPI_COMM_WORLD);

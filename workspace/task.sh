@@ -9,7 +9,7 @@ sleep_run=30
 sleep_cool=2
 sleep_interval=5
 
-repeat=5
+repeat=40
 
 for i in $(seq 1 $repeat); do
     for var in 102400 204800 819200 2048000; do
@@ -19,12 +19,12 @@ for i in $(seq 1 $repeat); do
         make pingpong_msg_size=$var -C ../
         
         # Warm up
-        mpirun -np 2 --hostfile hostfile1 ../pingpong1 
-        mpirun -np 2 --hostfile hostfile2 ../pingpong2
+        mpirun -np 8 --hostfile hostfile1 ../pingpong1 
+        mpirun -np 8 --hostfile hostfile2 ../pingpong2
 
 
-        mpirun -np 2 --hostfile hostfile2 ../pingpong2 &
-        mpirun -np 2 --hostfile hostfile1 ../pingpong1 
+        mpirun -np 8 --hostfile hostfile2 ../pingpong2 &
+        mpirun -np 8 --hostfile hostfile1 ../pingpong1 
 
         sleep $sleep_run
 
